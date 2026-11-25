@@ -15,13 +15,17 @@ from .auth import (
 from .cell import Cell
 from .client import Client
 from .exceptions import (
+    DuplicateIDsError,
     GSpreadException,
+    IDSetMismatchError,
     IncorrectCellLabel,
+    MissingIDsError,
     NoValidUrlKeyFound,
     SpreadsheetNotFound,
     WorksheetNotFound,
 )
 from .http_client import BackOffHTTPClient, HTTPClient
+from .reorder import RowMove, RowReorderPlan, reorder_rows
 from .spreadsheet import Spreadsheet
 from .worksheet import ValueRange, Worksheet
 
@@ -36,31 +40,31 @@ __all__ = [
     "oauth_from_dict",
     "service_account",
     "service_account_from_dict",
-
     # from .cell
     "Cell",
-
     # from .client
     "Client",
-
     # from .http_client
     "BackOffHTTPClient",
     "HTTPClient",
-
     # from .spreadsheet
     "Spreadsheet",
-
     # from .worksheet
     "Worksheet",
     "ValueRange",
-
+    # from .reorder
+    "RowMove",
+    "RowReorderPlan",
+    "reorder_rows",
     # from .exceptions
+    "DuplicateIDsError",
     "GSpreadException",
+    "IDSetMismatchError",
     "IncorrectCellLabel",
+    "MissingIDsError",
     "NoValidUrlKeyFound",
     "SpreadsheetNotFound",
     "WorksheetNotFound",
-
     # full module imports
     "urls",
     "utils",

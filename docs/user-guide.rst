@@ -327,6 +327,71 @@ Clear the entire worksheet:
 
    worksheet.clear()
 
+Reordering Rows by ID
+~~~~~~~~~~~~~~~~~~~~~
+
+When an upstream system supplies the target order of a data region as a list
+of unique IDs, :meth:`~gspread.worksheet.Worksheet.plan_row_reorder` reconciles
+the sheet against it. It reads the ID column, checks that the target is exactly
+a permutation of the current IDs, and plans the reorder:
+
+.. code:: python
+
+   plan = worksheet.plan_row_reorder("A2:D501", target_ids, id_column="A")
+
+The range covers the whole record so the plan knows the data area; ``id_column``
+selects the column holding the IDs and defaults to the region's first column.
+It accepts a column number, a column letter, or an A1 label such as ``"A1"``.
+
+Nothing is written until you call :meth:`~gspread.reorder.RowReorderPlan.execute`.
+Use the plan to inspect what would happen:
+
+.. code:: python
+
+   print(plan.preview())
+   print(plan.minimum_moves)
+   plan.execute()  # one batchUpdate carrying every move
+
+Or do both steps at once when no review is needed:
+
+.. code:: python
+
+   worksheet.reorder_rows("A2:D501", target_ids)
+
+The plan uses whole-row ``moveDimension`` requests, so formulas, notes and cell
+formatting travel with their row, and the header above the data region and any
+summary rows below it stay where they are. Every request stays inside the
+region, and each row is moved at most once. Rows that are already in the right
+place are left alone, so a sheet that already matches ``target_ids`` produces
+an empty plan and ``execute()`` sends nothing.
+
+The move count is the minimum possible for single-row moves. Rows that are not
+moved must keep their relative order, so they form a common subsequence of the
+current and target orders; the longest such subsequence determines how many
+rows can stay put, and every other row must move at least once.
+:meth:`~gspread.reorder.RowReorderPlan.explain_minimality` spells this out for
+each plan:
+
+.. code:: python
+
+   print(plan.explain_minimality())
+
+Invalid input is rejected before any plan is built, with the offending rows or
+IDs named in the error:
+
+* :class:`~gspread.exceptions.MissingIDsError` — a cell in the ID column is
+  blank.
+* :class:`~gspread.exceptions.DuplicateIDsError` — an ID is repeated in the
+  sheet or in the target order.
+* :class:`~gspread.exceptions.IDSetMismatchError` — the two collections of IDs
+  are not the same.
+
+By default IDs are compared as stored values
+(``ValueRenderOption.unformatted``). Pass
+``value_render_option=ValueRenderOption.formatted`` to compare displayed text
+instead, which is useful when a column formats numbers with leading zeros or
+currency symbols.
+
 Cell Object
 ~~~~~~~~~~~
 

@@ -1,6 +1,16 @@
 Release History
 ===============
 
+Unreleased
+----------
+
+* Add row reordering by unique ID: ``Worksheet.plan_row_reorder()``,
+  ``Worksheet.reorder_rows()`` and ``gspread.reorder`` plan the minimum number
+  of whole-row ``moveDimension`` requests, with ``preview()``,
+  ``explain_minimality()`` and a single-``batchUpdate`` ``execute()``. Invalid
+  input raises ``MissingIDsError``, ``DuplicateIDsError`` or
+  ``IDSetMismatchError``.
+
 6.2.1 (2025-05-14)
 ------------------
 

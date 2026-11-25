@@ -65,6 +65,7 @@ from .utils import (
 )
 
 if TYPE_CHECKING is True:
+    from .reorder import RowReorderPlan
     from .spreadsheet import Spreadsheet
 
 CellFormat = TypedDict(
@@ -2075,6 +2076,93 @@ class Worksheet:
         num_new_cols = len(values)
         self._properties["gridProperties"]["columnCount"] += num_new_cols
         return res
+
+    def plan_row_reorder(
+        self,
+        range_name: str,
+        target_order: Sequence[Any],
+        id_column: Union[int, str, None] = None,
+        value_render_option: ValueRenderOption = ValueRenderOption.unformatted,
+    ) -> "RowReorderPlan":
+        """Plan a reorder of the rows in a data region to a target ID order.
+
+        Reads the ID column of ``range_name`` (a bounded, contiguous data
+        region), checks that ``target_order`` is exactly a permutation of
+        those IDs, and returns a :class:`~gspread.reorder.RowReorderPlan` that
+        moves whole rows with the fewest possible single-row
+        ``moveDimension`` requests. Whole-row moves keep formulas, notes and
+        formatting with their row, and rows outside the region (a header row
+        above it, summary rows below it) never move.
+
+        The returned plan supports :meth:`~gspread.reorder.RowReorderPlan.preview`
+        and :meth:`~gspread.reorder.RowReorderPlan.explain_minimality` for
+        inspection, and :meth:`~gspread.reorder.RowReorderPlan.execute` to
+        send every move in a single ``batchUpdate`` call. A sheet that already
+        matches ``target_order`` yields an empty plan that executes as a no-op
+        without any API request.
+
+        :param str range_name: A bounded range in A1 notation covering the
+            data rows, for example ``"A2:D500"``. It defines both the rows
+            that may move and the data area of each record.
+        :param target_order: The IDs in their desired order. Must contain each
+            ID from the ID column exactly once.
+        :param id_column: (optional) Which column of ``range_name`` holds the
+            IDs: a 1-based column number, a column letter such as ``"A"``, or
+            an A1 label such as ``"A1"``. Defaults to the region's first
+            column.
+        :param value_render_option: (optional) How cell values are rendered
+            before comparison. Defaults to
+            :attr:`~gspread.utils.ValueRenderOption.unformatted`.
+
+        :raises MissingIDsError: If a cell in the ID column is blank.
+        :raises DuplicateIDsError: If an ID is repeated in the sheet or in
+            ``target_order``.
+        :raises IDSetMismatchError: If the two ID collections differ.
+
+        Example::
+
+            plan = worksheet.plan_row_reorder("A2:D500", ordered_ids)
+            print(plan.preview())  # inspect the moves before touching the sheet
+            plan.execute()
+
+        .. versionadded:: 6.3.0
+        """
+        from .reorder import plan_row_reorder
+
+        return plan_row_reorder(
+            self,
+            range_name=range_name,
+            target_order=target_order,
+            id_column=id_column,
+            value_render_option=value_render_option,
+        )
+
+    def reorder_rows(
+        self,
+        range_name: str,
+        target_order: Sequence[Any],
+        id_column: Union[int, str, None] = None,
+        value_render_option: ValueRenderOption = ValueRenderOption.unformatted,
+    ) -> Optional[Any]:
+        """Plan and apply a row reorder in a single call.
+
+        Convenience wrapper around :meth:`plan_row_reorder` followed by
+        :meth:`~gspread.reorder.RowReorderPlan.execute`. Prefer the two-step
+        form when a human should review the moves first. A sheet already in
+        the requested order is left untouched and no request is made.
+
+        Example::
+
+            worksheet.reorder_rows("A2:A500", ordered_ids)
+
+        .. versionadded:: 6.3.0
+        """
+        return self.plan_row_reorder(
+            range_name=range_name,
+            target_order=target_order,
+            id_column=id_column,
+            value_render_option=value_render_option,
+        ).execute()
 
     @cast_to_a1_notation
     def add_protected_range(
